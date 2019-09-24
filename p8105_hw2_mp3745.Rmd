@@ -10,3 +10,46 @@ output: github_document
 library(tidyverse)
 ```
 
+# Problem 1
+
+```{r}
+# Read in Mr. Trash Wheel data sheet, clean names, omit rows without dumpster specific data, round sports_balls to nearest int
+mr_trash_data = 
+  readxl::read_excel("./data/HealthyHarborWaterWheelTotals2018-7-28.xlsx", 
+                     sheet = "Mr. Trash Wheel", 
+                     range = "A2:N338") %>% 
+  janitor::clean_names() %>%
+  filter(!is.na(dumpster)) %>%
+  mutate(sports_balls = round(as.numeric(sports_balls), 0))
+```
+
+
+```{r}
+# Read in 2018 precipitation data
+precip_2018_data = 
+  readxl::read_excel("./data/HealthyHarborWaterWheelTotals2018-7-28.xlsx", 
+                     sheet = "2018 Precipitation", 
+                     range = "A2:B14") %>% 
+  janitor::clean_names() %>%
+  mutate(year = 2018) %>%
+  rename("total_precipitation_in" = "total") %>%
+  filter(!(is.na(total_precipitation_in))) %>%
+  select(year, month, total_precipitation_in)
+
+# Read in 2017 precipitation data
+precip_2017_data = 
+  readxl::read_excel("./data/HealthyHarborWaterWheelTotals2018-7-28.xlsx", 
+                     sheet = "2017 Precipitation", 
+                     range = "A2:B14") %>% 
+  janitor::clean_names() %>%
+  mutate(year = 2017) %>%
+  rename("total_precipitation_in" = "total") %>%
+  select(year, month, total_precipitation_in)
+
+# Combine 2017 and 2018 precipiation data
+precip_2017_18_data = 
+  bind_rows(precip_2017_data, precip_2018_data) %>% 
+  mutate(month = month.name[month])
+```
+
+In the Mr. Trash Wheel data, there a total of `r nrow(mr_trash_data)` observations, whereas the monthly record of precipitation for 2017 and 2018 combined has a total of `r nrow(precip_2017_18_data)` observations. The precipitation dataset consists of monthly records of the total precipitation in inches. The total amount of precipitation recorded in 2018 was `r sum(pull(filter(precip_2018_data, year == 2018), total_precipitation_in))` inches. The Mr. Trash Wheel dataset has dumpster level information regarding what was in each dumpster that was filled up. It has information about the weight and volume that was collected into the dumpster, and also counts of various items, such as sports balls. The median number of sports balls in a dumpster in 2017 was `r median(pull(filter(mr_trash_data, year == 2017), sports_balls))` balls. There is also information about the number of homes powered by the trash collected. 
