@@ -5,10 +5,26 @@ date: "9/24/2019"
 output: github_document
 ---
 
-```{r, message=FALSE}
-# Load tidyverse library
+```{r setup, include=FALSE}
 library(tidyverse)
+library(viridis)
+knitr::opts_chunk$set(
+	echo = TRUE,
+	warning = FALSE,
+	fig.width = 8, 
+  fig.height = 6,
+  out.width = "90%"
+)
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis"
+)
+scale_colour_discrete = scale_colour_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
 ```
+
+
 
 # Problem 1
 
@@ -22,6 +38,7 @@ mr_trash_data =
   filter(!is.na(dumpster)) %>%
   mutate(sports_balls = round(as.numeric(sports_balls), 0))
 ```
+
 
 
 ```{r}
@@ -77,6 +94,8 @@ pols_month_data =
   select(-value, -day)
 ```
 
+
+
 ```{r, message=FALSE}
 # Read in and clean the data about 2 varaibles related to Standard & Poor’s stock market index (S&P)
 snp_data = 
@@ -92,6 +111,8 @@ snp_data =
   select(year, month, close) %>%
   arrange(year, month)
 ```
+
+
 
 ```{r, message=FALSE}
 # Read in and clean the data about unemployment
@@ -119,6 +140,8 @@ unemploy_data =
   )
 ```
 
+
+
 ```{r}
 # Merge snp_date into pols_month_data
 snp_pols = 
@@ -130,3 +153,86 @@ snp_pols_unemploy =
 ```
 
 There were three datasets imported above. The first dataset (pols-month), consists of data about the number of politicians who are democratic or republican at a given time. The second dataset (snp), consists of data about the closing value of the S&P stock index on a given date. The third dataset (unemployment), consists of monthly recorded unemployment percentage values. The final dataset was a merged version of the three previously mentioned. This last dataset has `r nrow(snp_pols_unemploy)` observations of `r ncol(snp_pols_unemploy)` variables. The information was collected from `r min(pull(snp_pols_unemploy, year))` to `r max(pull(snp_pols_unemploy, year))` for a total coverage of `r max(pull(snp_pols_unemploy, year)) - min(pull(snp_pols_unemploy, year))` years. In this dataset, information is recorded on a monthly basis. The information collected consists of whether the president at the time was democratic or republican, the closing value of the S&P stock index, and the unemployment rate.
+
+
+# Problem 3
+```{r, message=FALSE}
+# Check ethnicity column for name changes of categorical variable
+read_csv("./data/Popular_Baby_Names.csv") %>%
+  janitor::clean_names() %>% 
+  group_by(ethnicity) %>% 
+  summarize()
+```
+From this, it looks like three different ethnicities had changes over time.
+
+
+
+```{r, message=FALSE}
+# Check childs_first_name column for changes in case
+read_csv("./data/Popular_Baby_Names.csv") %>%
+  janitor::clean_names() %>% 
+  group_by(childs_first_name) %>% 
+  summarize(
+    n = n()
+  )
+```
+It looks like names have changed between being all uppercase and having only the first letter uppercase
+
+
+
+```{r, message=FALSE}
+# Read in baby names data and tidy
+baby_data = 
+  read_csv("./data/Popular_Baby_Names.csv") %>% 
+  janitor::clean_names() %>% 
+  mutate(
+    childs_first_name = str_to_upper(childs_first_name),
+    ethnicity = recode(ethnicity,
+      "ASIAN AND PACI" = "ASIAN AND PACIFIC ISLANDER",
+      "BLACK NON HISP" = "BLACK NON HISPANIC",
+      "WHITE NON HISP" = "WHITE NON HISPANIC"
+    )
+  ) %>% 
+  distinct()
+```
+
+
+
+```{r}
+# Table showing the rank of the name "Olivia" over time
+baby_data %>% 
+  filter(childs_first_name == "OLIVIA") %>% 
+  select(year_of_birth, ethnicity, rank) %>%
+  arrange(year_of_birth) %>%
+  pivot_wider(
+    names_from = "year_of_birth",
+    values_from = "rank"
+  ) %>% 
+  knitr::kable(caption = "Rank of the name Olivia by ethnicity across birth years")
+```
+
+
+
+```{r}
+# Table showing most popular male names over time
+baby_data %>% 
+  filter(gender == "MALE", rank == 1) %>% 
+  select(year_of_birth, ethnicity, childs_first_name) %>% 
+  arrange(year_of_birth) %>% 
+  pivot_wider(
+    names_from = "year_of_birth",
+    values_from = "childs_first_name"
+  ) %>% 
+  knitr::kable(caption = "Most popular male name by ethnicity across birth years")
+```
+
+
+
+```{r}
+# Scatterplot of the number of children with a name against the rank in popularity for that name, among male, white non-hispanic, children born in 2016
+baby_data %>% 
+  filter(gender == "MALE", ethnicity == "WHITE NON HISPANIC", year_of_birth == 2016) %>% 
+  ggplot(aes(x = rank, y = count)) +
+  geom_point()
+```
+
